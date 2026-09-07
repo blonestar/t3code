@@ -6988,6 +6988,61 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
+  it.effect("streams the effective environment label when its name changes or resets", () =>
+    Effect.gen(function* () {
+      const label = yield* Ref.make(testEnvironmentDescriptor.label);
+      const settingsChanges = Stream.fromIterable([
+        { ...DEFAULT_SERVER_SETTINGS, environmentName: "Studio" },
+        { ...DEFAULT_SERVER_SETTINGS, environmentName: null },
+      ]).pipe(
+        Stream.mapEffect((settings) =>
+          Ref.set(label, settings.environmentName ?? testEnvironmentDescriptor.label).pipe(
+            Effect.as(settings),
+          ),
+        ),
+      );
+
+      yield* buildAppUnderTest({
+        layers: {
+          serverSettings: { streamChanges: settingsChanges },
+          serverEnvironment: {
+            getDescriptor: Ref.get(label).pipe(
+              Effect.map((nextLabel) => ({ ...testEnvironmentDescriptor, label: nextLabel })),
+            ),
+          },
+        },
+      });
+
+      const wsUrl = yield* getWsServerUrl("/ws");
+      const events = yield* Effect.scoped(
+        withWsRpcClient(wsUrl, (client) =>
+          client[WS_METHODS.subscribeServerConfig]({}).pipe(Stream.take(3), Stream.runCollect),
+        ),
+      );
+      const [, renamed, restored] = Array.from(events);
+
+      assert.equal(renamed?.type, "settingsUpdated");
+      if (renamed?.type === "settingsUpdated") {
+        assert.equal(renamed.payload.settings.environmentName, "Studio");
+        assert.equal(renamed.payload.environment?.label, "Studio");
+        assert.equal(
+          renamed.payload.environment?.environmentId,
+          testEnvironmentDescriptor.environmentId,
+        );
+      }
+
+      assert.equal(restored?.type, "settingsUpdated");
+      if (restored?.type === "settingsUpdated") {
+        assert.equal(restored.payload.settings.environmentName, null);
+        assert.equal(restored.payload.environment?.label, testEnvironmentDescriptor.label);
+        assert.equal(
+          restored.payload.environment?.environmentId,
+          testEnvironmentDescriptor.environmentId,
+        );
+      }
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)),
+  );
+
   it.effect("routes websocket rpc subscribeServerConfig streams snapshot then update", () =>
     Effect.gen(function* () {
       const path = yield* Path.Path;

@@ -50,7 +50,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
       const summary = Option.getOrNull(AsyncResult.value(result));
       statuses.push({
         environmentId,
-        label: presentation.entry.target.label,
+        label: presentation.label,
         isPending: result.waiting,
         error: result._tag === "Failure" ? "This environment could not report usage." : null,
         summary,

@@ -101,7 +101,7 @@ export function providersWithLimits(
 export type LimitPresentations = ReadonlyMap<
   EnvironmentId,
   {
-    readonly entry: { readonly target: { readonly label: string } };
+    readonly label: string;
     readonly serverConfig: {
       readonly providers?: readonly ServerProvider[] | undefined;
       readonly usageLimitSources?: UsageLimitSourceSnapshots | undefined;
@@ -124,7 +124,7 @@ export function collectExternalUsageLinks(presentations: LimitPresentations) {
     for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
       const external = provider.usageLimits?.externalUsage;
       if (external && provider.auth.status === "authenticated") {
-        const account = `${provider.displayName ?? provider.instanceId} on ${presentation.entry.target.label}`;
+        const account = `${provider.displayName ?? provider.instanceId} on ${presentation.label}`;
         links.set(external.url, {
           ...external,
           message: provider.usageLimits?.unavailable?.message,
@@ -247,7 +247,7 @@ export function collectLimitAccounts(presentations: LimitPresentations): readonl
     });
   };
   for (const [environmentId, presentation] of presentations) {
-    const label = presentation.entry.target.label;
+    const label = presentation.label;
     for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
       if (!provider.usageLimits || limitsNotice(provider.usageLimits) !== null) continue;
       merge(
@@ -275,7 +275,7 @@ export function collectLimitAccounts(presentations: LimitPresentations): readonl
   for (const [environmentId, presentation] of presentations) {
     for (const source of presentation.serverConfig?.usageLimitSources ?? []) {
       const sourceLabel = labelEnvironment
-        ? `${presentation.entry.target.label} · ${source.label}`
+        ? `${presentation.label} · ${source.label}`
         : source.label;
       for (const account of source.accounts) {
         if (limitsNotice(account.usageLimits) !== null) continue;
@@ -321,7 +321,7 @@ export function collectLimitNotices(presentations: LimitPresentations): readonly
     presentations.size > 1 ? `${environmentLabel} · ${subject}` : subject;
   const notices: string[] = [];
   for (const presentation of presentations.values()) {
-    const environmentLabel = presentation.entry.target.label;
+    const environmentLabel = presentation.label;
     for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
       // An account that can never report (API key) is left out; one that
       // failed, or reported nothing at all, is worth a line.

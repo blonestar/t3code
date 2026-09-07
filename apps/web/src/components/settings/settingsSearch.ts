@@ -744,6 +744,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     localBackendManagementOnly: true,
   },
   {
+    id: "environment-name",
+    title: "Environment name",
+    to: "/settings/connections",
+    targetId: "connections-environment",
+    searchTerms: ["rename machine label automatic hostname remote device server"],
+    localBackendManagementOnly: true,
+  },
+  {
     id: "local-environment",
     title: "Local environment",
     to: "/settings/connections",

@@ -148,7 +148,7 @@ describe("pools", () => {
     label: "hub",
     checkedAt,
   };
-  const laptop = { entry: { target: { label: "Laptop" } } };
+  const laptop = { label: "Laptop" };
 
   it("merges one account reported natively on two environments and by a hub into one entry", () => {
     const native = provider({
@@ -162,7 +162,7 @@ describe("pools", () => {
       [
         EnvironmentId.make("env-b"),
         {
-          entry: { target: { label: "Desktop" } },
+          label: "Desktop",
           serverConfig: {
             providers: [
               {
@@ -223,7 +223,7 @@ describe("pools", () => {
       [
         EnvironmentId.make("env-b"),
         {
-          entry: { target: { label: "Desktop" } },
+          label: "Desktop",
           serverConfig: {
             providers: [
               {
@@ -253,7 +253,7 @@ describe("pools", () => {
       usageLimits: { ...go.usageLimits!, credentialFingerprint: "other-go-key" },
     };
     input.set(EnvironmentId.make("env-b"), {
-      entry: { target: { label: "Desktop" } },
+      label: "Desktop",
       serverConfig: { providers: [differentKey] },
     });
     expect(collectLimitAccounts(input)).toHaveLength(2);
@@ -265,7 +265,7 @@ describe("pools", () => {
       },
     });
     input.set(EnvironmentId.make("env-b"), {
-      entry: { target: { label: "Desktop" } },
+      label: "Desktop",
       serverConfig: {
         providers: [
           { ...differentKey, auth: { status: "authenticated", email: "SAME@example.com" } },
@@ -388,10 +388,7 @@ describe("pools", () => {
     };
     const input = new Map([
       [EnvironmentId.make("env-a"), { ...laptop, serverConfig: { providers: [stale] } }],
-      [
-        EnvironmentId.make("env-b"),
-        { entry: { target: { label: "Desktop" } }, serverConfig: { providers: [fresh] } },
-      ],
+      [EnvironmentId.make("env-b"), { label: "Desktop", serverConfig: { providers: [fresh] } }],
     ]);
     const [account] = collectLimitAccounts(input);
     expect(account?.limits.resetCredits?.availableCount).toBe(2);
@@ -531,7 +528,7 @@ describe("pools", () => {
       [EnvironmentId.make("env-a"), { ...laptop, serverConfig: { usageLimitSources: [hub] } }],
       [
         EnvironmentId.make("env-b"),
-        { entry: { target: { label: "Desktop" } }, serverConfig: { usageLimitSources: [hub] } },
+        { label: "Desktop", serverConfig: { usageLimitSources: [hub] } },
       ],
     ]);
     const accounts = collectLimitAccounts(input);
@@ -811,7 +808,7 @@ describe("Cursor limit presentation", () => {
 describe("collectLimitNotices", () => {
   const checkedAt = "2026-09-03T11:00:00.000Z";
   const claude = ProviderDriverKind.make("claudeAgent");
-  const laptop = { entry: { target: { label: "Laptop" } } };
+  const laptop = { label: "Laptop" };
   const hub = {
     id: UsageLimitSourceId.make("hub"),
     kind: "cliproxy" as const,
@@ -856,7 +853,7 @@ describe("collectLimitNotices", () => {
     ]);
 
     one.set(EnvironmentId.make("env-b"), {
-      entry: { target: { label: "Desktop" } },
+      label: "Desktop",
       serverConfig: { providers: [], usageLimitSources: [] },
     });
     expect(collectLimitNotices(one)[0]).toBe("Laptop · Claude Max: Could not read limits.");
@@ -1144,16 +1141,13 @@ describe("external usage settings", () => {
       [
         EnvironmentId.make("a"),
         {
-          entry: { target: { label: "A" } },
+          label: "A",
           serverConfig: {
             providers: [managed, { ...managed, instanceId: ProviderInstanceId.make("personal") }],
           },
         },
       ],
-      [
-        EnvironmentId.make("b"),
-        { entry: { target: { label: "B" } }, serverConfig: { providers: [managed] } },
-      ],
+      [EnvironmentId.make("b"), { label: "B", serverConfig: { providers: [managed] } }],
     ]);
     expect(collectExternalUsageLinks(presentations)).toEqual([
       {
@@ -1177,7 +1171,7 @@ describe("external usage settings", () => {
       [
         EnvironmentId.make("a"),
         {
-          entry: { target: { label: "A" } },
+          label: "A",
           serverConfig: {
             providers: [
               { ...managed, enabled: false },

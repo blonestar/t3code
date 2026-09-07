@@ -20,6 +20,10 @@ export class BearerConnectionTarget extends Schema.TaggedClass<BearerConnectionT
   {
     ...ConnectionTargetBase,
     connectionId: Schema.String,
+    /** The user renamed this connection on this device, so its label wins over
+        a name chosen on the server. Pairing copies the server's label, which
+        is not a rename. */
+    customLabel: Schema.optionalKey(Schema.Boolean),
   },
 ) {}
 

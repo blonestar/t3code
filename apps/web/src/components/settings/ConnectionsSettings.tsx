@@ -69,6 +69,7 @@ import {
 import { LocalEnvironmentSetting } from "./LocalEnvironmentSetting";
 import { searchableSetting } from "./settingsSearch";
 import { EnvironmentIconMenu } from "./EnvironmentIconPicker";
+import { EnvironmentRenameDialog } from "./EnvironmentRenameDialog";
 import {
   EnvironmentRow,
   environmentTransportLabel,
@@ -1527,6 +1528,7 @@ function SavedBackendListRow({
     relayDiscovery.environments.get(environmentId)?.status ?? Option.none(),
   )?.descriptor;
   const [lastDescriptor, setLastDescriptor] = useState(discoveredDescriptor);
+  const [isRenaming, setIsRenaming] = useState(false);
   if (discoveredDescriptor !== undefined && discoveredDescriptor !== lastDescriptor) {
     setLastDescriptor(discoveredDescriptor);
   }
@@ -1640,6 +1642,7 @@ function SavedBackendListRow({
           <EllipsisIcon className="size-3.5" />
         </MenuTrigger>
         <MenuPopup align="end">
+          <MenuItem onClick={() => setIsRenaming(true)}>Rename…</MenuItem>
           <EnvironmentIconMenu
             environmentId={environmentId}
             serverConfig={environment.serverConfig}
@@ -1653,6 +1656,12 @@ function SavedBackendListRow({
           </MenuItem>
         </MenuPopup>
       </Menu>
+      <EnvironmentRenameDialog
+        environmentId={environmentId}
+        serverConfig={environment.serverConfig}
+        open={isRenaming}
+        onOpenChange={setIsRenaming}
+      />
     </EnvironmentRow>
   );
 }
@@ -1944,6 +1953,7 @@ export function ConnectionsSettings() {
     string | null
   >(null);
   // Only this client's creation response can supply a shareable credential.
+  const [isRenamingPrimary, setIsRenamingPrimary] = useState(false);
   const [createdPairingCredentials, setCreatedPairingCredentials] = useState<
     ReadonlyMap<string, string>
   >(() => new Map());
@@ -3302,26 +3312,35 @@ export function ConnectionsSettings() {
             }
             headerAction={
               primaryEnvironmentId !== null ? (
-                <Menu>
-                  <MenuTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="ghost-muted"
-                        size="icon-xs"
-                        aria-label="More actions for this machine"
+                <>
+                  <Menu>
+                    <MenuTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost-muted"
+                          size="icon-xs"
+                          aria-label="More actions for this machine"
+                        />
+                      }
+                    >
+                      <EllipsisIcon className="size-3.5" />
+                    </MenuTrigger>
+                    <MenuPopup align="end">
+                      <MenuItem onClick={() => setIsRenamingPrimary(true)}>Rename…</MenuItem>
+                      <EnvironmentIconMenu
+                        environmentId={primaryEnvironmentId}
+                        serverConfig={primaryServerConfig}
                       />
-                    }
-                  >
-                    <EllipsisIcon className="size-3.5" />
-                  </MenuTrigger>
-                  <MenuPopup align="end">
-                    <EnvironmentIconMenu
-                      environmentId={primaryEnvironmentId}
-                      serverConfig={primaryServerConfig}
-                    />
-                  </MenuPopup>
-                </Menu>
+                    </MenuPopup>
+                  </Menu>
+                  <EnvironmentRenameDialog
+                    environmentId={primaryEnvironmentId}
+                    serverConfig={primaryServerConfig}
+                    open={isRenamingPrimary}
+                    onOpenChange={setIsRenamingPrimary}
+                  />
+                </>
               ) : null
             }
           >

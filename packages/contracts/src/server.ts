@@ -703,6 +703,9 @@ export type ServerConfigProviderStatusesPayload = typeof ServerConfigProviderSta
 
 export const ServerConfigSettingsUpdatedPayload = Schema.Struct({
   settings: ServerSettings,
+  /** Present on servers that refresh the environment descriptor after a
+      settings change. Missing retains compatibility with older servers. */
+  environment: Schema.optionalKey(ExecutionEnvironmentDescriptor),
 });
 export type ServerConfigSettingsUpdatedPayload = typeof ServerConfigSettingsUpdatedPayload.Type;
 

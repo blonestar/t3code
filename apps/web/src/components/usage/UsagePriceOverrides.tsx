@@ -61,7 +61,7 @@ const priceTargetsAtom = Atom.make((get): readonly UsagePriceTarget[] =>
       : resolveRemoteOperateAccess(sessionAccess);
     return {
       environmentId,
-      label: environment.entry.target.label,
+      label: environment.label,
       prices: settings?.usagePriceOverrides ?? null,
       unavailable:
         environment.connection.phase !== "connected"

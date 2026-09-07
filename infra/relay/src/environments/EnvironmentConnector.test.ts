@@ -229,6 +229,7 @@ function makeLinks(
         environmentPublicKey: environmentKeyPair.publicKey,
         ...overrides,
       }),
+    updateLabel: () => Effect.void,
     revokeForUser: () => Effect.succeed(false),
   };
 }
@@ -324,6 +325,117 @@ describe("EnvironmentConnector", () => {
         },
       });
     }).pipe(Effect.provide(connectorTestLayer(execute)));
+  });
+
+  it.effect("refreshes a changed signed environment label without relinking", () => {
+    const updates: Array<{
+      readonly userId: string;
+      readonly environmentId: string;
+      readonly label: string;
+    }> = [];
+    const links = makeLinks({ label: "Old environment name" });
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const healthRequest = decodeHealthRequestBody(requestBodyText(request));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(
+            signHealthResponse(
+              healthRequest,
+              environmentKeyPair.privateKey,
+              {},
+              {
+                descriptor: {
+                  environmentId: "env-connector-test" as never,
+                  label: "Renamed environment",
+                  platform: { os: "darwin", arch: "arm64" },
+                  serverVersion: "0.0.0-test",
+                  capabilities: { repositoryIdentity: true },
+                },
+              },
+            ),
+            { status: 200 },
+          ),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      yield* connector.status({
+        userId: "user_123",
+        environmentId: "env-connector-test",
+      });
+      expect(updates).toEqual([
+        {
+          userId: "user_123",
+          environmentId: "env-connector-test",
+          label: "Renamed environment",
+        },
+      ]);
+    }).pipe(
+      Effect.provide(
+        connectorTestLayer(execute, {
+          links: {
+            ...links,
+            updateLabel: (input) => Effect.sync(() => void updates.push(input)),
+          },
+        }),
+      ),
+    );
+  });
+
+  it.effect("keeps a verified environment online when label persistence fails", () => {
+    const links = makeLinks({ label: "Old environment name" });
+    const execute = (request: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        const healthRequest = decodeHealthRequestBody(requestBodyText(request));
+        return HttpClientResponse.fromWeb(
+          request,
+          Response.json(
+            signHealthResponse(
+              healthRequest,
+              environmentKeyPair.privateKey,
+              {},
+              {
+                descriptor: {
+                  environmentId: "env-connector-test" as never,
+                  label: "Renamed environment",
+                  platform: { os: "darwin", arch: "arm64" },
+                  serverVersion: "0.0.0-test",
+                  capabilities: { repositoryIdentity: true },
+                },
+              },
+            ),
+            { status: 200 },
+          ),
+        );
+      });
+
+    return Effect.gen(function* () {
+      const connector = yield* EnvironmentConnector.EnvironmentConnector;
+      expect(
+        (yield* connector.status({
+          userId: "user_123",
+          environmentId: "env-connector-test",
+        })).status,
+      ).toBe("online");
+    }).pipe(
+      Effect.provide(
+        connectorTestLayer(execute, {
+          links: {
+            ...links,
+            updateLabel: () =>
+              Effect.fail(
+                new EnvironmentLinks.EnvironmentLinkLabelUpdatePersistenceError({
+                  userId: "user_123",
+                  environmentId: "env-connector-test",
+                  cause: new Error("database unavailable"),
+                }),
+              ),
+          },
+        }),
+      ),
+    );
   });
 
   it.effect("rejects manual endpoints before sending a health request", () => {

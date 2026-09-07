@@ -42,7 +42,7 @@ export function ConnectionEnvironmentRow(props: {
   readonly onSetEnabled: (environmentId: EnvironmentId, enabled: boolean) => void;
   readonly onUpdate: (
     environmentId: EnvironmentId,
-    updates: { readonly label: string; readonly displayUrl: string },
+    updates: { readonly label?: string; readonly displayUrl: string },
   ) => Promise<AtomCommandResult<unknown, unknown>>;
 }) {
   const [label, setLabel] = useState(props.environment.environmentLabel);
@@ -61,8 +61,11 @@ export function ConnectionEnvironmentRow(props: {
     (props.environment.connectionState === "connecting" ||
       props.environment.connectionState === "reconnecting");
   const handleSave = useCallback(async () => {
+    const nextLabel = label.trim();
+    // Only an edited label becomes a device rename; saving a URL change keeps
+    // following the server's name. A blank label returns to it.
     const result = await props.onUpdate(props.environment.environmentId, {
-      label: label.trim(),
+      ...(nextLabel === props.environment.environmentLabel ? {} : { label: nextLabel }),
       displayUrl: url.trim(),
     });
     if (AsyncResult.isSuccess(result)) {
@@ -164,7 +167,7 @@ export function ConnectionEnvironmentRow(props: {
                 label="Label"
                 autoCapitalize="words"
                 autoCorrect={false}
-                placeholder="My MacBook"
+                placeholder="Server's name"
                 value={label}
                 onChangeText={setLabel}
               />

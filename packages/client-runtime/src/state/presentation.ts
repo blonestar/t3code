@@ -7,6 +7,7 @@ import {
   presentEnvironmentConnection,
   type EnvironmentPresentation,
 } from "../connection/presentation.ts";
+import type { ConnectionCatalogEntry } from "../connection/catalog.ts";
 import type { EnvironmentCatalogState } from "./connections.ts";
 
 function mapsEqual<K, V>(left: ReadonlyMap<K, V>, right: ReadonlyMap<K, V>): boolean {
@@ -19,6 +20,29 @@ function mapsEqual<K, V>(left: ReadonlyMap<K, V>, right: ReadonlyMap<K, V>): boo
     }
   }
   return true;
+}
+
+/**
+ * The name an environment wears on this device. A rename made on this device
+ * wins, then the name chosen on the server. Primary and T3 Connect targets
+ * also follow the server's automatic label; other targets keep the label they
+ * were saved with, such as a desktop backend's "WSL: Ubuntu".
+ */
+export function resolveEnvironmentPresentationLabel(
+  entry: ConnectionCatalogEntry,
+  serverConfig: ServerConfig | null,
+): string {
+  const target = entry.target;
+  switch (target._tag) {
+    case "PrimaryConnectionTarget":
+    case "RelayConnectionTarget":
+      return serverConfig?.environment.label ?? target.label;
+    case "BearerConnectionTarget":
+      if (target.customLabel === true) return target.label;
+      return serverConfig?.settings.environmentName ?? target.label;
+    case "SshConnectionTarget":
+      return serverConfig?.settings.environmentName ?? target.label;
+  }
 }
 
 export function createEnvironmentPresentationAtoms<E>(input: {
@@ -39,13 +63,15 @@ export function createEnvironmentPresentationAtoms<E>(input: {
         AsyncResult.value(get(input.stateAtom(environmentId))),
         () => AVAILABLE_CONNECTION_STATE,
       );
+      const serverConfig = get(input.serverConfigValueAtom(environmentId));
       return {
         entry,
+        label: resolveEnvironmentPresentationLabel(entry, serverConfig),
         connection:
           entry.unsupportedReason === undefined
             ? presentEnvironmentConnection(state)
             : { phase: "unsupported", error: entry.unsupportedReason, traceId: null },
-        serverConfig: get(input.serverConfigValueAtom(environmentId)),
+        serverConfig,
       } satisfies EnvironmentPresentation;
     }).pipe(Atom.withLabel(`environment-presentation:${environmentId}`)),
   );

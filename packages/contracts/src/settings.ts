@@ -1100,6 +1100,11 @@ export const StorageCleanupSettings = Schema.Struct({
 });
 export type StorageCleanupSettings = typeof StorageCleanupSettings.Type;
 
+export const ENVIRONMENT_NAME_MAX_LENGTH = 160;
+const EnvironmentName = TrimmedNonEmptyString.check(
+  Schema.isMaxLength(ENVIRONMENT_NAME_MAX_LENGTH),
+);
+
 export const ServerSettings = Schema.Struct({
   worktreeCleanup: WorktreeCleanup.pipe(Schema.withDecodingDefault(Effect.succeed(null))),
   storageCleanup: StorageCleanupSettings.pipe(
@@ -1219,6 +1224,13 @@ export const ServerSettings = Schema.Struct({
    * here rather than failing the whole settings snapshot for an older client.
    */
   environmentIcon: ForwardCompatibleNullable(EnvironmentMachineKind).pipe(
+    Schema.withDecodingDefault(Effect.succeed(null)),
+  ),
+  /**
+   * A user-chosen name for this environment. Null keeps the server's
+   * automatically detected label.
+   */
+  environmentName: Schema.NullOr(EnvironmentName).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
   /**
@@ -1534,6 +1546,7 @@ export const ServerSettingsPatch = Schema.Struct({
   providerHealthRefreshInterval: Schema.optionalKey(Schema.DurationFromMillis),
   backgroundActivityProfile: Schema.optionalKey(BackgroundActivityProfile),
   environmentIcon: Schema.optionalKey(Schema.NullOr(EnvironmentMachineKind)),
+  environmentName: Schema.optionalKey(Schema.NullOr(EnvironmentName)),
   defaultThreadEnvMode: Schema.optionalKey(Schema.NullOr(ThreadEnvMode)),
   newWorktreesStartFromOrigin: Schema.optionalKey(Schema.Boolean),
   worktreeSubmodules: Schema.optionalKey(Schema.NullOr(WorktreeSubmodules)),

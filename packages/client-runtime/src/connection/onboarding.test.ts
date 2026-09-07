@@ -231,6 +231,47 @@ describe("connection onboarding", () => {
         },
         credential: { token: "bearer-token" },
       });
+      expect(registration.target).toMatchObject({ customLabel: true });
+    }),
+  );
+
+  it.effect("keeps or clears a device rename when updating a bearer connection", () =>
+    Effect.gen(function* () {
+      const environmentId = EnvironmentId.make("environment-paired");
+      const update = (label: string | undefined) =>
+        prepareBearerConnectionUpdate({
+          input: {
+            environmentId,
+            ...(label === undefined ? {} : { label }),
+            httpBaseUrl: "http://100.65.180.100:3773/",
+          },
+          entry: Option.some({
+            target: new BearerConnectionTarget({
+              environmentId,
+              label: "Studio Mac",
+              connectionId: "bearer:environment-paired",
+              customLabel: true,
+            }),
+            profile: Option.some(
+              new BearerConnectionProfile({
+                connectionId: "bearer:environment-paired",
+                environmentId,
+                label: "Studio Mac",
+                httpBaseUrl: "http://old.example.test/",
+                wsBaseUrl: "ws://old.example.test/",
+              }),
+            ),
+            enabled: true,
+          }),
+          credential: Option.some(new BearerConnectionCredential({ token: "bearer-token" })),
+        });
+
+      const kept = yield* update(undefined);
+      expect(kept.target).toMatchObject({ label: "Studio Mac", customLabel: true });
+
+      const cleared = yield* update("  ");
+      expect(cleared.target.label).toBe("Studio Mac");
+      expect(cleared.target).not.toHaveProperty("customLabel");
     }),
   );
 

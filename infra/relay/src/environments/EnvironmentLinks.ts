@@ -75,6 +75,19 @@ export class EnvironmentLinkLookupPersistenceError extends Schema.TaggedError<En
   }
 }
 
+export class EnvironmentLinkLabelUpdatePersistenceError extends Schema.TaggedError<EnvironmentLinkLabelUpdatePersistenceError>()(
+  "EnvironmentLinkLabelUpdatePersistenceError",
+  {
+    userId: Schema.String,
+    environmentId: Schema.String,
+    cause: Schema.Defect(),
+  },
+) {
+  override get message(): string {
+    return `Failed to update environment label for user '${this.userId}', environment '${this.environmentId}'`;
+  }
+}
+
 export class EnvironmentLinkRevokePersistenceError extends Schema.TaggedError<EnvironmentLinkRevokePersistenceError>()(
   "EnvironmentLinkRevokePersistenceError",
   {
@@ -114,6 +127,11 @@ export class EnvironmentLinks extends Context.Service<
       readonly userId: string;
       readonly environmentId: string;
     }) => Effect.Effect<RelayLinkedEnvironmentRecord | null, EnvironmentLinkLookupPersistenceError>;
+    readonly updateLabel: (input: {
+      readonly userId: string;
+      readonly environmentId: string;
+      readonly label: string;
+    }) => Effect.Effect<void, EnvironmentLinkLabelUpdatePersistenceError>;
     readonly revokeForUser: (input: {
       readonly userId: string;
       readonly environmentId: string;
@@ -314,6 +332,34 @@ const make = Effect.gen(function* () {
           Effect.mapError(
             (cause) =>
               new EnvironmentLinkLookupPersistenceError({
+                userId: input.userId,
+                environmentId: input.environmentId,
+                cause,
+              }),
+          ),
+        );
+    }),
+
+    updateLabel: Effect.fn("relay.environment_links.update_label")(function* (input) {
+      yield* Effect.annotateCurrentSpan({ "relay.environment_id": input.environmentId });
+      const updatedAt = DateTime.formatIso(yield* DateTime.now);
+      yield* db
+        .update(relayEnvironmentLinks)
+        .set({
+          environmentLabel: input.label,
+          updatedAt,
+        })
+        .where(
+          and(
+            eq(relayEnvironmentLinks.userId, input.userId),
+            eq(relayEnvironmentLinks.environmentId, input.environmentId),
+            isNull(relayEnvironmentLinks.revokedAt),
+          ),
+        )
+        .pipe(
+          Effect.mapError(
+            (cause) =>
+              new EnvironmentLinkLabelUpdatePersistenceError({
                 userId: input.userId,
                 environmentId: input.environmentId,
                 cause,

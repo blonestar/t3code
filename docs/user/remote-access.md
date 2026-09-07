@@ -25,6 +25,10 @@ environment. Over SSH, the CLI prints a browser link and a short code. Open the
 link on any device, confirm the code matches, and approve. The CLI continues on
 its own, so you do not need to forward an OAuth callback port.
 
+To distinguish environments that share an automatic machine name, choose
+**Rename…** from an environment's menu in **Settings → Connections**. The name
+applies on every device; leave it blank to return to the automatic name.
+
 T3 Connect renews access credentials when needed without disconnecting a healthy
 connection. Pull request diffs and provider settings keep working after the
 previous credential expires. A failed renewal affects that request; it does not

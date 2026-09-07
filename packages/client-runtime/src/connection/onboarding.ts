@@ -46,7 +46,8 @@ export interface SshConnectionInput {
 
 export interface BearerConnectionUpdateInput {
   readonly environmentId: EnvironmentId;
-  readonly label: string;
+  /** Omit to keep the current label. Blank returns to the server's name. */
+  readonly label?: string;
   readonly httpBaseUrl: string;
 }
 
@@ -180,13 +181,11 @@ export const prepareBearerConnectionUpdate = Effect.fn(
     });
   }
 
-  const label = options.input.label.trim();
-  if (label === "") {
-    return yield* new ConnectionBlockedError({
-      reason: "configuration",
-      detail: "Environment label cannot be empty.",
-    });
-  }
+  const renamed = options.input.label?.trim();
+  // A blank name keeps the last known label only as a fallback for while the
+  // server's own name is unavailable.
+  const label = renamed || entry.target.label;
+  const customLabel = renamed === undefined ? entry.target.customLabel === true : renamed !== "";
   const httpBaseUrl = yield* Effect.try({
     try: () => normalizeHttpBaseUrl(options.input.httpBaseUrl),
     catch: (cause) =>
@@ -201,6 +200,7 @@ export const prepareBearerConnectionUpdate = Effect.fn(
       environmentId: options.input.environmentId,
       label,
       connectionId,
+      ...(customLabel ? { customLabel } : {}),
     }),
     profile: new BearerConnectionProfile({
       connectionId,

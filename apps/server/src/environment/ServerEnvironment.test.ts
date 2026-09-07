@@ -19,6 +19,7 @@ import {
   RELAY_URL_SECRET,
 } from "../cloud/config.ts";
 import * as ServerConfig from "../config.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import * as ServerEnvironment from "./ServerEnvironment.ts";
 
 const isServerEnvironmentIdPersistenceError = Schema.is(
@@ -28,6 +29,7 @@ const isServerEnvironmentIdPersistenceError = Schema.is(
 const makeServerEnvironmentLayer = (baseDir: string) =>
   ServerEnvironment.layer.pipe(
     Layer.provide(ServerSecretStore.layer),
+    Layer.provide(ServerSettings.layerTest()),
     Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)),
   );
 
@@ -179,7 +181,38 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       expect(second.capabilities.threadTitleRegeneration).toBe(true);
       expect(second.capabilities.threadPullRequests).toBe(true);
       expect(second.capabilities.threadPullRequestLinking).toBe(true);
+      expect(second.capabilities.environmentName).toBe(true);
       expect(second.capabilities.agentActivityPublishing).toBe(false);
+    }),
+  );
+
+  it.effect("uses the current custom environment name and restores the automatic label", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const baseDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "t3-server-environment-name-test-",
+      });
+      const settingsLayer = ServerSettings.layerTest();
+      const testLayer = Layer.mergeAll(
+        ServerEnvironment.layer.pipe(
+          Layer.provide(ServerSecretStore.layer),
+          Layer.provide(settingsLayer),
+        ),
+        settingsLayer,
+      ).pipe(Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)));
+      return yield* Effect.gen(function* () {
+        const serverEnvironment = yield* ServerEnvironment.ServerEnvironment;
+        const serverSettings = yield* ServerSettings.ServerSettingsService;
+
+        const automatic = yield* serverEnvironment.getDescriptor;
+        yield* serverSettings.updateSettings({ environmentName: "  Studio server  " });
+        const renamed = yield* serverEnvironment.getDescriptor;
+        yield* serverSettings.updateSettings({ environmentName: null });
+        const restored = yield* serverEnvironment.getDescriptor;
+
+        expect(renamed.label).toBe("Studio server");
+        expect(restored.label).toBe(automatic.label);
+      }).pipe(Effect.provide(testLayer));
     }),
   );
 
@@ -192,7 +225,10 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       const testLayer = Layer.mergeAll(
         ServerEnvironment.layer.pipe(Layer.provide(ServerSecretStore.layer)),
         ServerSecretStore.layer,
-      ).pipe(Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)));
+      ).pipe(
+        Layer.provide(ServerSettings.layerTest()),
+        Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)),
+      );
 
       yield* Effect.gen(function* () {
         const secrets = yield* ServerSecretStore.ServerSecretStore;
@@ -246,6 +282,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
           Effect.provide(
             ServerEnvironment.layer.pipe(
               Layer.provide(ServerSecretStore.layer),
+              Layer.provide(ServerSettings.layerTest()),
               Layer.provide(ServerConfig.layer({ ...serverConfig, ...overrides })),
             ),
           ),
@@ -310,6 +347,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
           Effect.provide(
             ServerEnvironment.layer.pipe(
               Layer.provide(emptySecretStoreLayer),
+              Layer.provide(ServerSettings.layerTest()),
               Layer.provide(Layer.merge(ServerConfig.layer(serverConfig), failingFileSystemLayer)),
             ),
           ),

@@ -177,6 +177,7 @@ function harness() {
             : [],
         ),
       listForUser: () => Effect.succeed([]),
+      updateLabel: () => Effect.void,
       revokeForUser: () => Effect.succeed(false),
       getForUser: (input) =>
         Effect.sync(() =>

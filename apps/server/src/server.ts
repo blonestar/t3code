@@ -452,6 +452,9 @@ const ProjectFaviconResolverLayerLive = ProjectFaviconResolver.layer.pipe(
 
 const ServerEnvironmentLayerLive = ServerEnvironment.layer.pipe(
   Layer.provide(ServerSecretStore.layer),
+  // Use the shared layer identity so descriptor reads and settings broadcasts
+  // observe the same cached settings service.
+  Layer.provide(ServerSettingsLayerLive),
 );
 
 const AuthLayerLive = EnvironmentAuth.layer.pipe(

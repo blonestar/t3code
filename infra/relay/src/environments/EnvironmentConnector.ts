@@ -530,6 +530,22 @@ const make = Effect.gen(function* () {
           operation: "status",
         });
       }
+      if (decoded.descriptor.label !== link.label) {
+        yield* links
+          .updateLabel({
+            userId: input.userId,
+            environmentId: link.environmentId,
+            label: decoded.descriptor.label,
+          })
+          .pipe(
+            Effect.catch((error) =>
+              Effect.logWarning("Could not refresh linked environment label.", {
+                environmentId: link.environmentId,
+                error,
+              }),
+            ),
+          );
+      }
       return {
         environmentId: link.environmentId,
         endpoint,

@@ -413,15 +413,27 @@ describe("server state projection", () => {
       config: CONFIG,
     });
     const settings = { ...CONFIG.settings };
+    const renamedEnvironment = {
+      ...CONFIG.environment,
+      label: "Renamed environment",
+    } as ServerConfig["environment"];
     const projected = applyServerConfigProjection(snapshot, {
       version: 1,
       type: "settingsUpdated",
-      payload: { settings },
+      payload: { settings, environment: renamedEnvironment },
     });
 
     const result = Option.getOrThrow(projected);
     expect(result.config.settings).toBe(settings);
+    expect(result.config.environment).toBe(renamedEnvironment);
     expect(result.latestEvent.type).toBe("settingsUpdated");
+
+    const legacyUpdate = applyServerConfigProjection(projected, {
+      version: 1,
+      type: "settingsUpdated",
+      payload: { settings },
+    });
+    expect(Option.getOrThrow(legacyUpdate).config.environment).toBe(renamedEnvironment);
   });
 
   it("carries published environment themes in and out of the projected snapshot", () => {

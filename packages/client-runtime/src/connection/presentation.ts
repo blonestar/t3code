@@ -21,6 +21,8 @@ export interface EnvironmentConnectionPresentation {
 
 export interface EnvironmentPresentation {
   readonly entry: ConnectionCatalogEntry;
+  /** See `resolveEnvironmentPresentationLabel`. */
+  readonly label: string;
   readonly connection: EnvironmentConnectionPresentation;
   readonly serverConfig: ServerConfig | null;
 }

@@ -42,12 +42,7 @@ function provider(overrides: Partial<ServerProvider> = {}): ServerProvider {
   };
 }
 function presentations(providers: readonly ServerProvider[] = [provider()]) {
-  return new Map([
-    [
-      EnvironmentId.make("env"),
-      { entry: { target: { label: "Remote" } }, serverConfig: { providers } },
-    ],
-  ]);
+  return new Map([[EnvironmentId.make("env"), { label: "Remote", serverConfig: { providers } }]]);
 }
 
 describe("subscription widget snapshots", () => {
@@ -128,7 +123,7 @@ describe("subscription widget snapshots", () => {
       [
         EnvironmentId.make("env"),
         {
-          entry: { target: { label: "Remote" } },
+          label: "Remote",
           serverConfig: {
             providers: [provider()],
             usageLimitSources: [
@@ -265,7 +260,7 @@ describe("subscription widget snapshots", () => {
   it("uses the freshest copy of an account across environments before pooling", () => {
     const input = presentations();
     input.set(EnvironmentId.make("other"), {
-      entry: { target: { label: "Other" } },
+      label: "Other",
       serverConfig: {
         providers: [
           provider({

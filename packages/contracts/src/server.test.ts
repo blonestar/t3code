@@ -5,6 +5,7 @@ import { ExecutionEnvironmentDescriptor } from "./environment.ts";
 import {
   resolveEnvironmentMachineKind,
   ServerConfig,
+  ServerConfigSettingsUpdatedPayload,
   ServerObservability,
   ServerProvider,
   ServerProviders,
@@ -17,6 +18,7 @@ const decodeServerProviders = Schema.decodeUnknownSync(ServerProviders);
 const decodeServerObservability = Schema.decodeUnknownSync(ServerObservability);
 const decodeUpsertKeybindingResult = Schema.decodeUnknownSync(ServerUpsertKeybindingResult);
 const decodeAvailableEditors = Schema.decodeUnknownSync(ServerConfig.fields.availableEditors);
+const decodeSettingsUpdatedPayload = Schema.decodeUnknownSync(ServerConfigSettingsUpdatedPayload);
 
 const baseProviderSnapshot = {
   instanceId: "codex",
@@ -123,6 +125,13 @@ describe("ServerProvider", () => {
 });
 
 describe("server config forward compatibility", () => {
+  it("accepts settings updates from servers before environment refreshes", () => {
+    const parsed = decodeSettingsUpdatedPayload({ settings: {} });
+
+    expect(parsed.environment).toBeUndefined();
+    expect(parsed.settings.environmentName).toBeNull();
+  });
+
   it("drops config issues with kinds this build does not know", () => {
     const parsed = decodeUpsertKeybindingResult({
       keybindings: [],

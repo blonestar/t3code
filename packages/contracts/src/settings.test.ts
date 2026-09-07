@@ -1009,3 +1009,18 @@ it("validates remote device hosts and rejects ambiguous host ids", () => {
   ).toThrow();
   expect(() => decodeDeviceHostSettings({ deviceHosts: [{ ...host, port: 0 }] })).toThrow();
 });
+
+describe("ServerSettings environment name", () => {
+  it("defaults to null and trims a custom name", () => {
+    expect(decodeServerSettings({}).environmentName).toBeNull();
+    expect(decodeServerSettings({ environmentName: "  Studio server  " }).environmentName).toBe(
+      "Studio server",
+    );
+  });
+
+  it("allows clearing a custom name and rejects blank or oversized names", () => {
+    expect(decodeServerSettingsPatch({ environmentName: null }).environmentName).toBeNull();
+    expect(() => decodeServerSettingsPatch({ environmentName: "   " })).toThrow();
+    expect(() => decodeServerSettingsPatch({ environmentName: "x".repeat(161) })).toThrow();
+  });
+});

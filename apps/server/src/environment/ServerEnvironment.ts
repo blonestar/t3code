@@ -20,6 +20,7 @@ import { resolveServerSelfUpdateCapability } from "../cloud/selfUpdate.ts";
 import { resolveServiceLauncherMode } from "../cloud/serviceLauncherClient.ts";
 import * as ServerConfig from "../config.ts";
 import * as ProcessRunner from "../processRunner.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import { resolveServerEnvironmentLabel } from "./ServerEnvironmentLabel.ts";
 import { detectServerEnvironmentMachineKind } from "./ServerEnvironmentMachine.ts";
 
@@ -184,12 +185,13 @@ export const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const serverConfig = yield* ServerConfig.ServerConfig;
   const secrets = yield* ServerSecretStore.ServerSecretStore;
+  const serverSettings = yield* ServerSettings.ServerSettingsService;
   const identity = yield* ServerEnvironmentIdentity;
   const hostPlatform = yield* HostProcessPlatform;
   const hostArchitecture = yield* HostProcessArchitecture;
   const environmentId = yield* identity.getEnvironmentId;
   const cwdBaseName = path.basename(serverConfig.cwd).trim();
-  const label = yield* resolveServerEnvironmentLabel({ cwdBaseName });
+  const automaticLabel = yield* resolveServerEnvironmentLabel({ cwdBaseName });
   const machine = yield* detectServerEnvironmentMachineKind();
   const launcher = yield* resolveServiceLauncherMode();
   const serverSelfUpdate = resolveServerSelfUpdateCapability({
@@ -205,7 +207,7 @@ export const make = Effect.gen(function* () {
 
   const descriptor: ExecutionEnvironmentDescriptor = {
     environmentId,
-    label,
+    label: automaticLabel,
     platform: {
       os: platformOs(hostPlatform),
       arch: platformArch(hostArchitecture),
@@ -241,6 +243,7 @@ export const make = Effect.gen(function* () {
       pullRequestStackActions: true,
       threadPullRequestLinking: true,
       environmentIcon: true,
+      environmentName: true,
       projectCloneTracking: true,
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverSelfUpdate === "boot-service" || desktopAppUpdate
@@ -256,14 +259,25 @@ export const make = Effect.gen(function* () {
   return ServerEnvironment.of({
     getEnvironmentId: Effect.succeed(environmentId),
     // The publish opt-in and relay link change at runtime (`t3 connect
-    // publish`, the client settings toggle), so the capability is read per
-    // descriptor request rather than baked in at startup.
-    getDescriptor: readAgentActivityPublishingActive(secrets).pipe(
-      Effect.map((agentActivityPublishing) => ({
+    // publish`, the client settings toggle), as does the user-selected
+    // environment name. Read both per descriptor request rather than baking
+    // them in at startup.
+    getDescriptor: Effect.gen(function* () {
+      // Read the settings cache directly instead of awaiting `ready`, so
+      // descriptor requests never wait on settings startup.
+      const environmentName = yield* serverSettings.getSettings.pipe(
+        Effect.map((settings) => settings.environmentName),
+        // Keep the public descriptor available if a manually edited
+        // settings.json cannot be read. The automatic label remains valid.
+        Effect.orElseSucceed(() => null),
+      );
+      const agentActivityPublishing = yield* readAgentActivityPublishingActive(secrets);
+      return {
         ...descriptor,
+        label: environmentName ?? automaticLabel,
         capabilities: { ...descriptor.capabilities, agentActivityPublishing },
-      })),
-    ),
+      };
+    }),
   });
 });
 
