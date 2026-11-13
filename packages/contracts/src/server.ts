@@ -744,6 +744,14 @@ export function resolveEnvironmentMachineKind(
   return config?.settings?.environmentIcon ?? config?.environment.platform.machine ?? "server";
 }
 
+/** The environment's own name wins over the label a client saved for it. */
+export function resolveEnvironmentLabel(
+  config: { readonly settings?: Pick<ServerSettings, "environmentLabel"> } | null,
+  savedLabel: string,
+): string {
+  return config?.settings?.environmentLabel ?? savedLabel;
+}
+
 const ServerUpsertKeybindingReplaceTarget = Schema.Struct({
   key: KeybindingValue,
   command: KeybindingCommand,

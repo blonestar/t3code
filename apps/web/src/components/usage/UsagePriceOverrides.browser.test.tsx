@@ -9,6 +9,7 @@ vi.mock(import("~/state/presentation"), async (original) => {
   const { Atom } = await import("effect/reactivity");
   const actual = await original();
   const presentation = {
+    label: "workstation",
     entry: { target: { label: "workstation" } },
     connection: { phase: "connected" },
     serverConfig: {

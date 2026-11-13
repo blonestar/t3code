@@ -24,7 +24,12 @@ import { UsageLimitSourceId } from "./usageLimitSourceId.ts";
 import { UsageModelFilter } from "./usage.ts";
 import { SecretProviderId, SecretProviderSlug } from "./secretReference.ts";
 import { SettingsSecretValue } from "./settingsSecretValue.ts";
-import { EnvironmentMachineKind, ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
+import {
+  EnvironmentLabel,
+  EnvironmentMachineKind,
+  ThreadEnvMode,
+  WorktreeSubmodules,
+} from "./environment.ts";
 import { KeybindingShortcut } from "./keybindings.ts";
 import {
   CustomModelSetting,
@@ -1494,6 +1499,10 @@ export const ServerSettings = Schema.Struct({
   environmentIcon: ForwardCompatibleNullable(EnvironmentMachineKind).pipe(
     Schema.withDecodingDefault(Effect.succeed(null)),
   ),
+  /** Null keeps the automatic machine name. */
+  environmentLabel: ForwardCompatibleNullable(EnvironmentLabel).pipe(
+    Schema.withDecodingDefault(Effect.succeed(null)),
+  ),
   /** Null inherits t3.json, then local; omit it on the wire for older clients requiring a literal. */
   defaultThreadEnvMode: OmittedWhenNull(ThreadEnvMode),
   newWorktreesStartFromOrigin: Schema.Boolean.pipe(
@@ -1902,6 +1911,7 @@ export const ServerSettingsPatch = Schema.Struct({
   providerHealthRefreshInterval: Schema.optionalKey(Schema.DurationFromMillis),
   backgroundActivityProfile: Schema.optionalKey(BackgroundActivityProfile),
   environmentIcon: Schema.optionalKey(Schema.NullOr(EnvironmentMachineKind)),
+  environmentLabel: Schema.optionalKey(Schema.NullOr(EnvironmentLabel)),
   defaultThreadEnvMode: Schema.optionalKey(Schema.NullOr(ThreadEnvMode)),
   newWorktreesStartFromOrigin: Schema.optionalKey(Schema.Boolean),
   worktreeSubmodules: Schema.optionalKey(Schema.NullOr(WorktreeSubmodules)),

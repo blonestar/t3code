@@ -29,6 +29,8 @@ export type EnvironmentServerConfig = Omit<ServerConfig, "providers">;
 
 export interface EnvironmentPresentation {
   readonly entry: ConnectionCatalogEntry;
+  /** The environment's own name when it has one, else the label this client saved. */
+  readonly label: string;
   readonly connection: EnvironmentConnectionPresentation;
   readonly serverConfig: EnvironmentServerConfig | null;
 }

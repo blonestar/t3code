@@ -27,6 +27,7 @@ function presentation(): EnvironmentPresentation {
       enabled: true,
       profile: Option.none(),
     },
+    label: "Mac",
     connection: { phase: "connected", error: null, traceId: null },
     serverConfig: null,
   };

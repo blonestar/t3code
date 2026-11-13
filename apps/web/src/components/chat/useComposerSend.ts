@@ -619,8 +619,7 @@ export function useComposerSend(input: ComposerSendInput) {
     })[0];
     if (strandedThread) {
       const owner =
-        readEnvironmentPresentation(strandedThread.environmentId)?.entry.target.label ??
-        "its machine";
+        readEnvironmentPresentation(strandedThread.environmentId)?.label ?? "its machine";
       toastManager.add(
         stackedThreadToast({
           type: "warning",

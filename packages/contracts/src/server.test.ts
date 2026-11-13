@@ -5,6 +5,7 @@ import { ExecutionEnvironmentDescriptor } from "./environment.ts";
 import {
   applyServerProviderDeltas,
   OtlpEndpointCheckInput,
+  resolveEnvironmentLabel,
   resolveEnvironmentMachineKind,
   ServerConfigProviderStatusDeltasPayload,
   ServerObservability,
@@ -153,6 +154,18 @@ describe("resolveEnvironmentMachineKind", () => {
     expect(
       resolveEnvironmentMachineKind({ environment: parsed, settings: decodeSettings({}) }),
     ).toBe("server");
+  });
+});
+
+describe("resolveEnvironmentLabel", () => {
+  const decodeSettings = Schema.decodeUnknownSync(ServerSettings);
+
+  it("keeps the saved label until the environment has its own name", () => {
+    expect(resolveEnvironmentLabel(null, "Box")).toBe("Box");
+    expect(resolveEnvironmentLabel({ settings: decodeSettings({}) }, "Box")).toBe("Box");
+    expect(
+      resolveEnvironmentLabel({ settings: decodeSettings({ environmentLabel: "Work" }) }, "Box"),
+    ).toBe("Work");
   });
 });
 

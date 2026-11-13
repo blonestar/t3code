@@ -30,6 +30,7 @@ function presentation(
 ): EnvironmentPresentation {
   return {
     entry: { target: target(environmentId, endpoint), profile: Option.none(), enabled: true },
+    label: `Environment ${environmentId}`,
     connection: { phase: "connected", error: null, traceId: null },
     serverConfig,
   };
@@ -127,5 +128,13 @@ describe("remote environment projections", () => {
       wsBaseUrl: "wss://catalog-updated.example.test",
       bearerToken: null,
     });
+
+    const unnamed = harness.registry.get(harness.presentationAtom(ENVIRONMENT_ID));
+    harness.registry.set(harness.presentationAtom(ENVIRONMENT_ID), {
+      ...unnamed!,
+      label: "Renamed",
+    });
+
+    expect(harness.registry.get(firstConsumer)).toMatchObject({ environmentLabel: "Renamed" });
   });
 });

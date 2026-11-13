@@ -148,6 +148,15 @@ shown there apply only to the route marked **In use**; other routes are not
 checked. Direct pairing and T3 Connect have separate sessions and may grant
 different permissions.
 
+### Name an environment
+
+An environment is named after its machine, so several user accounts on one
+computer show the same name. To tell them apart, on web or desktop open the
+environment's menu in **Settings → Connections** and choose **Rename…**. The name
+is saved on that environment, so every device connected to it shows it, mobile
+included. To go back to the machine name, open **Rename…** and choose **Use
+automatic name**.
+
 ### Balance new threads across machines
 
 Auto balance is off by default. On web and desktop, enable it in

@@ -21,6 +21,7 @@ export function createRemoteEnvironmentProjectionAtoms(input: {
 }) {
   const savedConnectionAtom = Atom.family((environmentId: EnvironmentId) => {
     let previousEntry: EnvironmentPresentation["entry"] | null = null;
+    let previousLabel: string | null = null;
     let previousPrepared: PreparedConnection | null = null;
     let previous: SavedRemoteConnection | null = null;
 
@@ -28,6 +29,7 @@ export function createRemoteEnvironmentProjectionAtoms(input: {
       const presentation = get(input.presentationAtom(environmentId));
       if (presentation === null) {
         previousEntry = null;
+        previousLabel = null;
         previousPrepared = null;
         previous = null;
         return null;
@@ -37,6 +39,7 @@ export function createRemoteEnvironmentProjectionAtoms(input: {
       if (
         previous !== null &&
         presentation.entry === previousEntry &&
+        presentation.label === previousLabel &&
         prepared === previousPrepared
       ) {
         return previous;
@@ -58,10 +61,11 @@ export function createRemoteEnvironmentProjectionAtoms(input: {
         : presentation.entry.target._tag === "RelayConnectionTarget";
 
       previousEntry = presentation.entry;
+      previousLabel = presentation.label;
       previousPrepared = prepared;
       previous = {
         environmentId,
-        environmentLabel: presentation.entry.target.label,
+        environmentLabel: presentation.label,
         pairingUrl: displayUrl,
         displayUrl,
         httpBaseUrl,

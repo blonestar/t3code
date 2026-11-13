@@ -20,17 +20,35 @@ import {
   MenuSubTrigger,
 } from "../ui/menu";
 
-export function resolveEnvironmentIconPickerLock(input: {
+export function resolveEnvironmentSettingsLock(input: {
   readonly serverConfig: Pick<ServerConfig, "environment"> | null;
   readonly operateAccess: "granted" | "denied" | "pending";
+  readonly change: "icon" | "name";
 }): string | null {
   if (input.serverConfig === null) {
-    return "Connect to this environment to change its icon.";
+    return `Connect to this environment to change its ${input.change}.`;
+  }
+  if (
+    input.change === "name" &&
+    input.serverConfig.environment.capabilities.environmentLabel !== true
+  ) {
+    return "Update this environment to rename it.";
   }
   if (input.operateAccess !== "granted") {
     return "Your session on this environment cannot change its settings.";
   }
   return null;
+}
+
+export function useEnvironmentSettingsLock(
+  environmentId: EnvironmentId,
+  serverConfig: Pick<ServerConfig, "environment"> | null,
+  change: "icon" | "name",
+): string | null {
+  const operateAccess = useEnvironmentScope(environmentId, AuthSettingsWriteScope)
+    ? "granted"
+    : "denied";
+  return resolveEnvironmentSettingsLock({ serverConfig, operateAccess, change });
 }
 
 export function EnvironmentIconMenu({
@@ -41,10 +59,7 @@ export function EnvironmentIconMenu({
   readonly serverConfig: Pick<ServerConfig, "environment"> | null;
 }) {
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
-  const operateAccess = useEnvironmentScope(environmentId, AuthSettingsWriteScope)
-    ? "granted"
-    : "denied";
-  const lock = resolveEnvironmentIconPickerLock({ serverConfig, operateAccess });
+  const lock = useEnvironmentSettingsLock(environmentId, serverConfig, "icon");
   const detected = serverConfig?.environment.platform.machine ?? "server";
   const resolved = resolveEnvironmentMachineKind(serverConfig);
 

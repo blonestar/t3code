@@ -127,7 +127,7 @@ export function linkableMachines(input: {
       const connect = input.connect.get(environment.environmentId)?.environment.endpoint;
       return {
         environmentId: environment.environmentId,
-        label: environment.entry.target.label,
+        label: environment.label,
         machine: resolveEnvironmentMachineKind(environment.serverConfig),
         connected: environment.connection.phase === "connected",
         connectOnly: false,

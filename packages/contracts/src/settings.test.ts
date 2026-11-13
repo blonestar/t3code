@@ -396,6 +396,23 @@ describe("ServerSettings.sourceControlWritingStyle", () => {
   });
 });
 
+describe("ServerSettings environment label", () => {
+  it("defaults to the automatic name and accepts a trimmed name or a reset", () => {
+    expect(decodeServerSettings({}).environmentLabel).toBeNull();
+    expect(decodeServerSettings({ environmentLabel: "x".repeat(65) }).environmentLabel).toBeNull();
+    expect(decodeServerSettingsPatch({ environmentLabel: "  Work  " }).environmentLabel).toBe(
+      "Work",
+    );
+    expect(decodeServerSettingsPatch({ environmentLabel: null }).environmentLabel).toBeNull();
+  });
+
+  it("rejects a blank or over-long name", () => {
+    for (const environmentLabel of ["   ", "x".repeat(65)]) {
+      expect(() => decodeServerSettingsPatch({ environmentLabel })).toThrow();
+    }
+  });
+});
+
 describe("ServerSettings environment icon", () => {
   it("decodes a kind from a newer server as null instead of failing the snapshot", () => {
     expect(decodeServerSettings({ environmentIcon: "toaster" }).environmentIcon).toBeNull();

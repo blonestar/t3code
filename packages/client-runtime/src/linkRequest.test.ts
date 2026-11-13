@@ -122,6 +122,7 @@ const presentation = (
   });
   return {
     environmentId,
+    label,
     entry: {
       ...(first ?? {
         target: new RelayConnectionTarget({ environmentId, label }),

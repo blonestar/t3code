@@ -1,4 +1,5 @@
 import {
+  resolveEnvironmentLabel,
   resolveEnvironmentMachineKind,
   type EnvironmentMachineKind,
   type EnvironmentId,
@@ -89,19 +90,22 @@ export function createEnvironmentPresentationAtoms<E>(input: {
           : state === AVAILABLE_CONNECTION_STATE && entry.enabled
             ? { phase: "connecting", error: null, traceId: null }
             : presentConnectionState(state);
+      const serverConfig = withoutProviders(
+        get(input.serverConfigValueAtom(environmentId)),
+        previous?.serverConfig ?? null,
+      );
       const next = {
         entry,
+        label: resolveEnvironmentLabel(serverConfig, entry.target.label),
         connection:
           previous !== null && sameConnection(previous.connection, connection)
             ? previous.connection
             : connection,
-        serverConfig: withoutProviders(
-          get(input.serverConfigValueAtom(environmentId)),
-          previous?.serverConfig ?? null,
-        ),
+        serverConfig,
       } satisfies EnvironmentPresentation;
       return previous !== null &&
         previous.entry === next.entry &&
+        previous.label === next.label &&
         previous.connection === next.connection &&
         previous.serverConfig === next.serverConfig
         ? previous
@@ -207,7 +211,7 @@ export function projectEnvironmentConnectionSummary(
 ): EnvironmentConnectionSummary {
   return {
     environmentId,
-    environmentLabel: environment.entry.target.label,
+    environmentLabel: environment.label,
     displayUrl: connectionCatalogDisplayUrl(environment.entry) ?? "",
     isRelayManaged: hasRelayRoute(environment.entry),
     isEnabled: environment.entry.enabled,
@@ -235,7 +239,7 @@ export function createEnvironmentSummaryAtoms(input: {
   const identitiesAtom = Atom.make((get) => {
     const next = [...get(input.catalogValueAtom).entries].map(([environmentId, entry]) => ({
       environmentId,
-      label: entry.target.label,
+      label: get(input.presentationAtom(environmentId))?.label ?? entry.target.label,
     }));
     const previous = Option.getOrNull(
       get.self<ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly label: string }>>(),

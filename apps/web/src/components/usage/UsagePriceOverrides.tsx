@@ -58,7 +58,7 @@ const priceTargetsAtom = Atom.make((get): readonly UsagePriceTarget[] =>
             : "denied";
     return {
       environmentId,
-      label: environment.entry.target.label,
+      label: environment.label,
       prices: settings?.usagePriceOverrides ?? null,
       aliases:
         environment.serverConfig?.environment.capabilities.usageModelAliases === true

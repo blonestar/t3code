@@ -49,15 +49,18 @@ export function ConnectionEnvironmentRow(props: {
     updates: { readonly label: string; readonly displayUrl: string },
   ) => Promise<AtomCommandResult<unknown, unknown>>;
 }) {
-  const [label, setLabel] = useState(props.environment.environmentLabel);
+  const presentation = useAtomValue(
+    environmentPresentations.presentationAtom(props.environment.environmentId),
+  );
+  // The summary shows the environment's own name when it has one; edit the label this device saved.
+  const [label, setLabel] = useState(
+    presentation?.entry.target.label ?? props.environment.environmentLabel,
+  );
   const [url, setUrl] = useState(props.environment.displayUrl);
   const serverConfig = useAtomValue(
     serverEnvironment.configValueAtom(props.environment.environmentId),
   );
   const unsupported = props.environment.connectionState === "unsupported";
-  const presentation = useAtomValue(
-    environmentPresentations.presentationAtom(props.environment.environmentId),
-  );
   const canRetry = presentation !== null && hasSavedBearerRoute(presentation.entry);
   const { diagnosis, state: connectionState } = useConnectionDiagnosis(
     props.environment.environmentId,
@@ -222,6 +225,11 @@ export function ConnectionEnvironmentRow(props: {
                 value={label}
                 onChangeText={setLabel}
               />
+              {serverConfig?.settings?.environmentLabel ? (
+                <Text className="text-sm text-foreground-muted">
+                  This environment has its own name, which is shown instead of this label.
+                </Text>
+              ) : null}
 
               <ConnectionFormField
                 label="URL"

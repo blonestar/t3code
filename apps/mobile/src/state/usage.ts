@@ -43,7 +43,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
       if (!access.canReadDiagnostics) {
         statuses.push({
           environmentId,
-          label: presentation.entry.target.label,
+          label: presentation.label,
           isConnected: presentation.connection.phase === "connected",
           ...access,
           summary: null,
@@ -62,7 +62,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
       const summary = AsyncResult.getOrElse(result, () => null);
       statuses.push({
         environmentId,
-        label: presentation.entry.target.label,
+        label: presentation.label,
         isPending: result.waiting,
         isConnected: presentation.connection.phase === "connected",
         canReadDiagnostics: true,

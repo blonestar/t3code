@@ -90,6 +90,29 @@ describe("environment summary subscriptions", () => {
       h.registry.dispose();
     }
   });
+
+  it("labels an environment by its own name until the name is cleared", () => {
+    const h = harness();
+    const named = (environmentLabel: string | null) =>
+      ({ ...config(), settings: { environmentLabel } }) as ServerConfig;
+    const stop = h.registry.subscribe(h.identitiesAtom, () => {});
+    try {
+      h.registry.set(h.configs(FIRST), named("MacBook Pro · user2"));
+      expect(h.registry.get(h.full.presentationAtom(FIRST))?.label).toBe("MacBook Pro · user2");
+      expect(h.registry.get(h.identitiesAtom)).toEqual([
+        { environmentId: FIRST, label: "MacBook Pro · user2" },
+        { environmentId: SECOND, label: "second" },
+      ]);
+      expect(h.registry.get(h.environmentsAtom)[0]?.environmentLabel).toBe("MacBook Pro · user2");
+
+      h.registry.set(h.configs(FIRST), named(null));
+      expect(h.registry.get(h.full.presentationAtom(FIRST))?.label).toBe("first");
+      expect(h.registry.get(h.identitiesAtom)[0]).toEqual({ environmentId: FIRST, label: "first" });
+    } finally {
+      stop();
+      h.registry.dispose();
+    }
+  });
 });
 
 describe("presentations with providers", () => {

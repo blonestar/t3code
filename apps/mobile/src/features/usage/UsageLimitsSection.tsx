@@ -334,7 +334,7 @@ export function useRefreshLimits(
   );
   const failedLabels = selected
     .filter(([environmentId]) => failedIds.has(environmentId))
-    .map(([, presentation]) => presentation.entry.target.label);
+    .map(([, presentation]) => presentation.label);
 
   const refresh = () =>
     Promise.all(

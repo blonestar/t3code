@@ -44,6 +44,8 @@ export const EnvironmentMachineKind = Schema.Literals(ENVIRONMENT_MACHINE_KINDS)
 export type EnvironmentMachineKind = typeof EnvironmentMachineKind.Type;
 export const isEnvironmentMachineKind = Schema.is(EnvironmentMachineKind);
 
+export const EnvironmentLabel = TrimmedNonEmptyString.check(Schema.isMaxLength(64));
+
 export const ExecutionEnvironmentPlatform = Schema.Struct({
   os: ExecutionEnvironmentPlatformOs,
   arch: ExecutionEnvironmentPlatformArch,
@@ -161,6 +163,7 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   /** Server answers projects.listIgnoredFiles. */
   ignoredFileListing: Schema.optionalKey(Schema.Boolean),
   environmentIcon: Schema.optionalKey(Schema.Boolean),
+  environmentLabel: Schema.optionalKey(Schema.Boolean),
   desktopAppUpdate: Schema.optionalKey(Schema.Boolean),
   /** The desktop app switches update tracks when a server update request names one. */
   desktopAppChannelSwitch: Schema.optionalKey(Schema.Boolean),

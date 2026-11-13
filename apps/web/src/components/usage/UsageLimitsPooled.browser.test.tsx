@@ -41,6 +41,7 @@ describe("UsageLimitsPooled ChatGPT usage card", () => {
       [
         EnvironmentId.make("desk"),
         {
+          label: "Desk",
           entry: { target: { label: "Desk" } },
           serverConfig: {
             providers: [
