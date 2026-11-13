@@ -22,6 +22,7 @@ import { resolveServiceLauncherMode } from "../cloud/serviceLauncherClient.ts";
 import * as ServerConfig from "../config.ts";
 import { databaseMigrationHead } from "../persistence/databaseMigrationHead.ts";
 import * as ProcessRunner from "../processRunner.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import { isSpeechPlatformSupported } from "../speech/platform.ts";
 import { resolveServerEnvironmentLabel } from "./ServerEnvironmentLabel.ts";
 import { detectServerEnvironmentMachineKind } from "./ServerEnvironmentMachine.ts";
@@ -187,6 +188,7 @@ export const make = Effect.gen(function* () {
   const path = yield* Path.Path;
   const serverConfig = yield* ServerConfig.ServerConfig;
   const secrets = yield* ServerSecretStore.ServerSecretStore;
+  const settings = yield* ServerSettings.ServerSettingsService;
   const identity = yield* ServerEnvironmentIdentity;
   const hostPlatform = yield* HostProcess.Platform;
   const hostArchitecture = yield* HostProcess.Architecture;
@@ -302,9 +304,17 @@ export const make = Effect.gen(function* () {
   return ServerEnvironment.of({
     getEnvironmentId: Effect.succeed(environmentId),
     // Publishing opt-in and relay links change at runtime; read the capability per request.
-    getDescriptor: readAgentActivityPublishingActive(secrets).pipe(
-      Effect.map((agentActivityPublishing) => ({
+    getDescriptor: Effect.all({
+      agentActivityPublishing: readAgentActivityPublishingActive(secrets),
+      // A broken settings file must not take the public descriptor down with it.
+      customLabel: settings.getSettings.pipe(
+        Effect.map((current) => current.environmentLabel),
+        Effect.orElseSucceed(() => null),
+      ),
+    }).pipe(
+      Effect.map(({ agentActivityPublishing, customLabel }) => ({
         ...descriptor,
+        ...(customLabel === null ? {} : { customLabel }),
         capabilities: { ...descriptor.capabilities, agentActivityPublishing },
       })),
     ),

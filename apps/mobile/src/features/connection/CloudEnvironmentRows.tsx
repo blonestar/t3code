@@ -11,6 +11,7 @@ import {
   type EnvironmentId,
   type EnvironmentMachineKind,
   type ExecutionEnvironmentDescriptor,
+  resolveEnvironmentLabel,
   resolveEnvironmentMachineKind,
 } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
@@ -234,6 +235,10 @@ function CloudEnvironmentRow(props: {
     statusError: props.environment.error,
     statusErrorTraceId: props.environment.traceId,
   });
+  const config =
+    props.environment.status?.descriptor === undefined
+      ? null
+      : { environment: props.environment.status.descriptor };
 
   return (
     <CloudEnvironmentRowShell
@@ -242,12 +247,8 @@ function CloudEnvironmentRow(props: {
       connectionErrorTraceId={presentation.connectionErrorTraceId}
       connectionState={presentation.connectionState}
       errorExpanded={props.errorExpanded}
-      label={props.environment.environment.label}
-      machine={resolveEnvironmentMachineKind(
-        props.environment.status?.descriptor === undefined
-          ? null
-          : { environment: props.environment.status.descriptor },
-      )}
+      label={resolveEnvironmentLabel(config, props.environment.environment.label)}
+      machine={resolveEnvironmentMachineKind(config)}
       onValueChange={(enabled) => {
         if (enabled) {
           props.onConnect();

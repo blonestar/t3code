@@ -211,7 +211,13 @@ export type ExecutionEnvironmentCapabilities = typeof ExecutionEnvironmentCapabi
 
 export const ExecutionEnvironmentDescriptor = Schema.Struct({
   environmentId: EnvironmentId,
+  /** The automatic machine name; the environment's own name travels in `customLabel`. */
   label: TrimmedNonEmptyString,
+  /**
+   * Derived from the environment's settings per request, for readers that have none yet.
+   * Only writes enforce the length cap, so a longer name from a newer server still decodes.
+   */
+  customLabel: Schema.optionalKey(TrimmedNonEmptyString),
   platform: ExecutionEnvironmentPlatform,
   serverVersion: TrimmedNonEmptyString,
   orchestrationProtocolVersion: Schema.optionalKey(Schema.Int),

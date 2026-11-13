@@ -1,6 +1,6 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { ORCHESTRATION_PROTOCOL_VERSION } from "@t3tools/contracts";
+import { ORCHESTRATION_PROTOCOL_VERSION, ServerSettingsError } from "@t3tools/contracts";
 import { expect, it } from "@effect/vitest";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Deferred from "effect/Deferred";
@@ -19,11 +19,13 @@ import {
   RELAY_URL_SECRET,
 } from "../cloud/config.ts";
 import * as ServerConfig from "../config.ts";
+import * as ServerSettings from "../serverSettings.ts";
 import * as ServerEnvironment from "./ServerEnvironment.ts";
 
 const layerServerEnvironment = (baseDir: string) =>
   ServerEnvironment.layer.pipe(
     Layer.provide(ServerSecretStore.layer),
+    Layer.provide(ServerSettings.layerTest()),
     Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)),
   );
 
@@ -99,6 +101,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("ServerEnvironmen
           Effect.provide(
             ServerEnvironment.layer.pipe(
               Layer.provide(layerEmptySecretStore),
+              Layer.provide(ServerSettings.layerTest()),
               Layer.provide(ServerConfig.layer({ ...config, mode })),
             ),
           ),
@@ -141,6 +144,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("ServerEnvironmen
           Effect.provide(
             ServerEnvironment.layer.pipe(
               Layer.provide(layerEmptySecretStore),
+              Layer.provide(ServerSettings.layerTest()),
               Layer.provide(
                 ServerConfig.layer({
                   ...config,
@@ -304,7 +308,10 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("ServerEnvironmen
         prefix: "t3-server-environment-publish-test-",
       });
       const layerTest = Layer.mergeAll(
-        ServerEnvironment.layer.pipe(Layer.provide(ServerSecretStore.layer)),
+        ServerEnvironment.layer.pipe(
+          Layer.provide(ServerSecretStore.layer),
+          Layer.provide(ServerSettings.layerTest()),
+        ),
         ServerSecretStore.layer,
       ).pipe(Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)));
 
@@ -333,6 +340,72 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("ServerEnvironmen
         const disabled = yield* serverEnvironment.getDescriptor;
         expect(disabled.capabilities.agentActivityPublishing).toBe(false);
       }).pipe(Effect.provide(layerTest));
+    }),
+  );
+
+  it.effect("names the environment by its setting without touching the automatic label", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const baseDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "t3-server-environment-label-test-",
+      });
+      const settingsLayer = ServerSettings.layerTest();
+      const layerTest = Layer.mergeAll(
+        ServerEnvironment.layer.pipe(
+          Layer.provide(ServerSecretStore.layer),
+          Layer.provide(settingsLayer),
+        ),
+        settingsLayer,
+      ).pipe(Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)));
+
+      yield* Effect.gen(function* () {
+        const settings = yield* ServerSettings.ServerSettingsService;
+        const serverEnvironment = yield* ServerEnvironment.ServerEnvironment;
+
+        const automatic = yield* serverEnvironment.getDescriptor;
+        expect(automatic.customLabel).toBeUndefined();
+
+        yield* settings.updateSettings({ environmentLabel: "Work" });
+        const named = yield* serverEnvironment.getDescriptor;
+        expect(named.customLabel).toBe("Work");
+        expect(named.label).toBe(automatic.label);
+
+        yield* settings.updateSettings({ environmentLabel: null });
+        const reset = yield* serverEnvironment.getDescriptor;
+        expect("customLabel" in reset).toBe(false);
+      }).pipe(Effect.provide(layerTest));
+    }),
+  );
+
+  it.effect("still publishes a descriptor when the settings cannot be read", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const baseDir = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "t3-server-environment-broken-settings-test-",
+      });
+      const descriptor = yield* Effect.gen(function* () {
+        const serverEnvironment = yield* ServerEnvironment.ServerEnvironment;
+        return yield* serverEnvironment.getDescriptor;
+      }).pipe(
+        Effect.provide(
+          ServerEnvironment.layer.pipe(
+            Layer.provide(ServerSecretStore.layer),
+            Layer.provide(
+              Layer.mock(ServerSettings.ServerSettingsService)({
+                getSettings: Effect.fail(
+                  new ServerSettingsError({
+                    settingsPath: "/settings.json",
+                    operation: "read-secret",
+                  }),
+                ),
+              }),
+            ),
+            Layer.provide(ServerConfig.layerTest(process.cwd(), baseDir)),
+          ),
+        ),
+      );
+      expect(descriptor.customLabel).toBeUndefined();
+      expect(descriptor.label.length).toBeGreaterThan(0);
     }),
   );
 });

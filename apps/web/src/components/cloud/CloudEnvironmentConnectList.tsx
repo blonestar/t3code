@@ -13,6 +13,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import {
   type EnvironmentId,
+  resolveEnvironmentLabel,
   resolveEnvironmentMachineKind,
   type ServerConfig,
 } from "@t3tools/contracts";
@@ -136,7 +137,7 @@ export function CloudEnvironmentConnectRows({
     };
   }, [refreshRelayEnvironments, refreshWhileEmpty, onDiscoveryReady]);
 
-  const connectEnvironment = async (environment: RelayClientEnvironmentRecord) => {
+  const connectEnvironment = async (environment: RelayClientEnvironmentRecord, label: string) => {
     if (
       discoveredCompatibilityError(
         environmentsState.environments.get(environment.environmentId)?.status,
@@ -157,8 +158,8 @@ export function CloudEnvironmentConnectRows({
           ? "T3 Connect route added"
           : "Environment added",
         description: savedWithoutRelay.has(environment.environmentId)
-          ? `${environment.label} falls back to T3 Connect when its other routes are unreachable.`
-          : `Connecting to ${environment.label} through T3 Connect.`,
+          ? `${label} falls back to T3 Connect when its other routes are unreachable.`
+          : `Connecting to ${label} through T3 Connect.`,
       });
       return true;
     }
@@ -214,7 +215,13 @@ export function CloudEnvironmentConnectRows({
         seen.add(id);
         selection.onChange(id, true);
         if (!savedById.has(id)) {
-          void connectEnvironment(environment).then((connected) => {
+          const descriptor =
+            status === undefined ? undefined : Option.getOrNull(status)?.descriptor;
+          const label = resolveEnvironmentLabel(
+            descriptor === undefined ? null : { environment: descriptor },
+            environment.label,
+          );
+          void connectEnvironment(environment, label).then((connected) => {
             if (!connected) selection.onChange(id, false);
           });
         }
@@ -328,10 +335,11 @@ export function CloudEnvironmentConnectRows({
       availability === "offline" && relayStatus !== null
         ? relayOfflineReasonMessage(relayStatus)
         : null;
-    const machineKind = resolveEnvironmentMachineKind(
+    const config =
       savedEnvironment?.serverConfig ??
-        (descriptor === undefined ? null : { environment: descriptor }),
-    );
+      (descriptor === undefined ? null : { environment: descriptor });
+    const machineKind = resolveEnvironmentMachineKind(config);
+    const label = resolveEnvironmentLabel(config, environment.label);
     const dotClassName = savedConnection
       ? savedConnection.tone === "connected"
         ? "bg-success"
@@ -378,7 +386,7 @@ export function CloudEnvironmentConnectRows({
               if (unsupported) return;
               selection.onChange(environment.environmentId, checked);
               if (checked && !savedEnvironment) {
-                const connected = await connectEnvironment(environment);
+                const connected = await connectEnvironment(environment, label);
                 if (!connected) selection.onChange(environment.environmentId, false);
               }
             }}
@@ -389,7 +397,7 @@ export function CloudEnvironmentConnectRows({
             className="size-4 shrink-0 text-muted-foreground"
           />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium">{environment.label}</span>
+            <span className="block truncate text-sm font-medium">{label}</span>
             {unsupportedDetail !== null ? (
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 {unsupportedDetail}
@@ -454,7 +462,7 @@ export function CloudEnvironmentConnectRows({
                 kind={machineKind}
                 className="size-4 shrink-0 text-muted-foreground"
               />
-              <p className="truncate text-sm font-medium">{environment.label}</p>
+              <p className="truncate text-sm font-medium">{label}</p>
             </div>
             <p
               className={cn(
@@ -486,7 +494,7 @@ export function CloudEnvironmentConnectRows({
             <Button
               size="sm"
               disabled={connectingEnvironmentIds.size > 0}
-              onClick={() => void connectEnvironment(environment)}
+              onClick={() => void connectEnvironment(environment, label)}
             >
               {connectingEnvironmentIds.has(environment.environmentId)
                 ? "Adding…"

@@ -746,10 +746,18 @@ export function resolveEnvironmentMachineKind(
 
 /** The environment's own name wins over the label a client saved for it. */
 export function resolveEnvironmentLabel(
-  config: { readonly settings?: Pick<ServerSettings, "environmentLabel"> } | null,
+  config: {
+    readonly environment: Pick<ExecutionEnvironmentDescriptor, "customLabel">;
+    readonly settings?: Pick<ServerSettings, "environmentLabel">;
+  } | null,
   savedLabel: string,
 ): string {
-  return config?.settings?.environmentLabel ?? savedLabel;
+  if (config === null) return savedLabel;
+  // Settings arrive on a live stream; the descriptor inside a config is a snapshot.
+  const custom = config.settings
+    ? config.settings.environmentLabel
+    : config.environment.customLabel;
+  return custom ?? savedLabel;
 }
 
 const ServerUpsertKeybindingReplaceTarget = Schema.Struct({

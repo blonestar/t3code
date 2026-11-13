@@ -158,14 +158,44 @@ describe("resolveEnvironmentMachineKind", () => {
 });
 
 describe("resolveEnvironmentLabel", () => {
+  const decodeDescriptor = Schema.decodeUnknownSync(ExecutionEnvironmentDescriptor);
   const decodeSettings = Schema.decodeUnknownSync(ServerSettings);
+  const descriptor = (customLabel?: string) =>
+    decodeDescriptor({
+      environmentId: "env-1",
+      label: "Box",
+      ...(customLabel === undefined ? {} : { customLabel }),
+      platform: { os: "linux", arch: "x64" },
+      serverVersion: "1.0.0",
+      capabilities: {},
+    });
 
   it("keeps the saved label until the environment has its own name", () => {
     expect(resolveEnvironmentLabel(null, "Box")).toBe("Box");
-    expect(resolveEnvironmentLabel({ settings: decodeSettings({}) }, "Box")).toBe("Box");
     expect(
-      resolveEnvironmentLabel({ settings: decodeSettings({ environmentLabel: "Work" }) }, "Box"),
+      resolveEnvironmentLabel({ environment: descriptor(), settings: decodeSettings({}) }, "Box"),
+    ).toBe("Box");
+    expect(
+      resolveEnvironmentLabel(
+        { environment: descriptor(), settings: decodeSettings({ environmentLabel: "Work" }) },
+        "Box",
+      ),
     ).toBe("Work");
+  });
+
+  it("lets live settings reset a name the descriptor snapshot still carries", () => {
+    expect(
+      resolveEnvironmentLabel(
+        { environment: descriptor("Work"), settings: decodeSettings({ environmentLabel: null }) },
+        "Box",
+      ),
+    ).toBe("Box");
+  });
+
+  it("uses the descriptor's name before any settings have arrived", () => {
+    expect(resolveEnvironmentLabel({ environment: descriptor("Work") }, "Box")).toBe("Work");
+    const longName = "x".repeat(65);
+    expect(resolveEnvironmentLabel({ environment: descriptor(longName) }, "Box")).toBe(longName);
   });
 });
 

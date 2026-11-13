@@ -47,7 +47,7 @@ export const layer = McpToolAccess.toLayer(EnvironmentToolkit, {
       const current = yield* settings.getSettings.pipe(Effect.mapError(unavailable));
       return {
         environmentId: descriptor.environmentId,
-        label: descriptor.label,
+        label: descriptor.customLabel ?? descriptor.label,
         serverVersion: descriptor.serverVersion,
         platform: descriptor.platform,
         preferences: preferences(current),
